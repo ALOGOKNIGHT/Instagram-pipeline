@@ -1,0 +1,11 @@
+{
+  "name": "instagram-content-pipeline",
+  "version": "1.0.0",
+  "description": "3-agent Instagram content pipeline using Groq + Gemini",
+  "scripts": {
+    "dev": "vercel dev"
+  },
+  "dependencies": {
+    "node-fetch": "^3.3.2"
+  }
+}

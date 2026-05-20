@@ -1,0 +1,361 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Instagram Content Pipeline</title>
+<style>
+:root{--bg:#0a0a0f;--surface:#13131a;--surface2:#1c1c27;--border:#2a2a3a;--accent:#7c6ffc;--accent2:#1db97a;--text:#f0f0f5;--muted:#7a7a90;--radius:12px}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--bg);color:var(--text);font-family:'Segoe UI',system-ui,sans-serif;min-height:100vh}
+header{padding:18px 24px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between}
+header h1{font-size:16px;font-weight:700}
+.hbadge{font-size:11px;background:var(--surface2);border:1px solid var(--border);padding:4px 10px;border-radius:100px;color:var(--muted)}
+.layout{display:grid;grid-template-columns:270px 1fr;min-height:calc(100vh - 57px)}
+.sidebar{border-right:1px solid var(--border);padding:18px 14px;display:flex;flex-direction:column;gap:20px;overflow-y:auto}
+.sec-label{font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.08em;margin-bottom:8px}
+.cat-btn{width:100%;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:11px 13px;cursor:pointer;text-align:left;color:var(--text);transition:all .15s;display:flex;align-items:center;gap:10px;margin-bottom:7px}
+.cat-btn:hover{background:var(--surface2)}
+.cat-btn.sel{border-color:var(--accent);background:rgba(124,111,252,.1)}
+.cat-btn.sel-g{border-color:var(--accent2);background:rgba(29,185,122,.08)}
+.cat-btn.sel-o{border-color:#f59e0b;background:rgba(245,158,11,.08)}
+.cat-btn.sel-r{border-color:#f87171;background:rgba(248,113,113,.08)}
+.ci{font-size:19px;flex-shrink:0}.cn{font-size:12px;font-weight:600}.cs{font-size:10px;color:var(--muted);margin-top:1px}
+.key-wrap{margin-bottom:11px}
+.key-label{font-size:11px;color:var(--muted);margin-bottom:5px;display:flex;align-items:center;gap:6px}
+.kbadge{font-size:10px;padding:2px 7px;border-radius:4px;font-weight:700}
+.kb-g{background:rgba(245,158,11,.15);color:#f59e0b}
+.kb-t{background:rgba(124,111,252,.15);color:#a78bfa}
+.key-input{width:100%;background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:8px 11px;color:var(--text);font-size:12px;font-family:monospace;transition:border-color .15s}
+.key-input:focus{outline:none;border-color:var(--accent)}
+.key-link{font-size:11px;color:var(--accent);text-decoration:none;display:inline-block;margin-top:4px}
+.key-link:hover{text-decoration:underline}
+.opt{font-size:10px;color:var(--muted);font-style:italic}
+.run-btn{width:100%;padding:13px;font-size:14px;font-weight:700;background:var(--accent);border:none;border-radius:var(--radius);cursor:pointer;color:#fff;transition:all .15s;display:flex;align-items:center;justify-content:center;gap:8px;margin-top:auto}
+.run-btn:hover{background:#6a5fef}
+.run-btn:disabled{opacity:.4;cursor:not-allowed}
+.main{padding:22px;overflow-y:auto}
+.main-title{font-size:19px;font-weight:700;margin-bottom:4px}
+.main-sub{font-size:12px;color:var(--muted);margin-bottom:22px}
+.pipeline{display:flex;align-items:center;margin-bottom:20px}
+.pnode{flex:1;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:13px 8px;text-align:center;transition:all .3s}
+.pnode.active{border-color:var(--accent);box-shadow:0 0 0 1px var(--accent)}
+.pnode.done{border-color:var(--accent2)}
+.pi{font-size:21px;margin-bottom:5px}.pl{font-size:11px;font-weight:700}
+.ps{font-size:10px;color:var(--muted);margin-top:2px}
+.pnode.active .ps{color:var(--accent)}.pnode.done .ps{color:var(--accent2)}
+.pm{font-size:10px;margin-top:3px}
+.parr{color:var(--muted);padding:0 8px;font-size:18px;flex-shrink:0}
+.out-block{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);margin-bottom:13px;overflow:hidden}
+.out-head{display:flex;align-items:center;gap:9px;padding:11px 15px;background:var(--surface2);border-bottom:1px solid var(--border)}
+.otag{font-size:10px;font-weight:700;padding:3px 9px;border-radius:100px}
+.tg{background:rgba(245,158,11,.15);color:#f59e0b;border:1px solid rgba(245,158,11,.25)}
+.otitle{font-size:12px;font-weight:600;flex:1}
+.cbtn{font-size:11px;padding:4px 11px;border-radius:7px;border:1px solid var(--border);background:transparent;cursor:pointer;color:var(--muted);transition:all .15s}
+.cbtn:hover{background:var(--surface);color:var(--text)}.cbtn.ok{color:var(--accent2);border-color:var(--accent2)}
+.out-body{padding:15px;font-size:13px;line-height:1.8;white-space:pre-wrap;color:#d0d0e0;min-height:55px}
+.loading{display:flex;align-items:center;gap:10px;color:var(--muted);font-style:italic}
+.dots span{display:inline-block;width:6px;height:6px;border-radius:50%;background:var(--muted);animation:bop 1.2s infinite;margin:0 2px}
+.dots span:nth-child(2){animation-delay:.2s}.dots span:nth-child(3){animation-delay:.4s}
+@keyframes bop{0%,80%,100%{transform:translateY(0)}40%{transform:translateY(-6px)}}
+.caption-box{background:rgba(124,111,252,.07);border:1px solid rgba(124,111,252,.22);border-radius:var(--radius);padding:15px;margin-top:13px}
+.cap-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px}
+.cap-head strong{font-size:13px;color:var(--accent)}
+.cap-text{font-size:13px;line-height:1.8;color:#d0d0e0;white-space:pre-wrap}
+.empty{text-align:center;padding:70px 20px;color:var(--muted)}
+.empty-icon{font-size:48px;margin-bottom:16px}
+.empty h2{font-size:17px;font-weight:600;margin-bottom:8px;color:var(--text)}
+.empty p{font-size:13px;line-height:1.6;max-width:300px;margin:0 auto}
+.err-box{background:rgba(248,113,113,.08);border:1px solid rgba(248,113,113,.28);border-radius:var(--radius);padding:13px 15px;font-size:13px;color:#f87171;line-height:1.7}
+/* ── Topic Selector / Generate Slide panel ── */
+.slide-panel{background:linear-gradient(135deg,rgba(124,111,252,.1),rgba(29,185,122,.07));border:1px solid rgba(124,111,252,.3);border-radius:var(--radius);padding:18px 18px 14px;margin-bottom:13px;animation:fadeIn .4s ease}
+@keyframes fadeIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
+.slide-panel-title{font-size:13px;font-weight:700;color:var(--accent);margin-bottom:4px;display:flex;align-items:center;gap:7px}
+.slide-panel-sub{font-size:11px;color:var(--muted);margin-bottom:14px}
+.topic-btns{display:flex;gap:9px;flex-wrap:wrap;margin-bottom:14px}
+.topic-btn{flex:1;min-width:80px;padding:10px 8px;background:var(--surface2);border:1px solid var(--border);border-radius:9px;cursor:pointer;color:var(--text);font-size:12px;font-weight:600;transition:all .18s;text-align:center}
+.topic-btn:hover{background:rgba(124,111,252,.15);border-color:var(--accent)}
+.topic-btn.picked{background:rgba(124,111,252,.22);border-color:var(--accent);color:var(--accent);box-shadow:0 0 0 1px var(--accent)}
+.gen-slide-btn{width:100%;padding:11px;font-size:13px;font-weight:700;background:linear-gradient(135deg,var(--accent),#1db97a);border:none;border-radius:var(--radius);cursor:pointer;color:#fff;transition:all .18s;display:flex;align-items:center;justify-content:center;gap:8px}
+.gen-slide-btn:hover{opacity:.88;transform:translateY(-1px)}
+.gen-slide-btn:disabled{opacity:.4;cursor:not-allowed;transform:none}
+::-webkit-scrollbar{width:5px}::-webkit-scrollbar-thumb{background:var(--border);border-radius:3px}
+@media(max-width:700px){.layout{grid-template-columns:1fr}.sidebar{border-right:none;border-bottom:1px solid var(--border)}}
+</style>
+</head>
+<body>
+<header>
+  <h1>📸 Instagram Content Pipeline</h1>
+  <span class="hbadge">Reddit + Groq · 3 Agents · 4 Categories</span>
+</header>
+<div class="layout">
+  <aside class="sidebar">
+    <div>
+      <div class="sec-label">Category</div>
+      <button class="cat-btn sel" data-cat="roadmap" onclick="pick(this)">
+        <span class="ci">🗺️</span><div><div class="cn">Roadmap</div><div class="cs">Coding & AI learning paths</div></div>
+      </button>
+      <button class="cat-btn" data-cat="ai" onclick="pick(this)">
+        <span class="ci">🧠</span><div><div class="cn">AI Tech Explain</div><div class="cs">Simplified tech concepts</div></div>
+      </button>
+      <button class="cat-btn" data-cat="interview" onclick="pick(this)">
+        <span class="ci">💬</span><div><div class="cn">Interview Question</div><div class="cs">Tech hiring Q&As</div></div>
+      </button>
+      <button class="cat-btn" data-cat="news" onclick="pick(this)">
+        <span class="ci">📰</span><div><div class="cn">Tech Industry News</div><div class="cs">Trending tech stories</div></div>
+      </button>
+    </div>
+    <div>
+      <div class="sec-label">API Keys</div>
+      <div class="key-wrap">
+        <div class="key-label"><span class="kbadge kb-g">GROQ</span> All 3 Agents</div>
+        <input class="key-input" type="password" id="groqKey" placeholder="gsk_..." autocomplete="off"/>
+        <a class="key-link" href="https://console.groq.com/keys" target="_blank">→ Get free Groq key</a>
+      </div>
+      <div class="key-wrap">
+        <div class="key-label"><span class="kbadge kb-t">TAVILY</span> Web Search <span class="opt">(optional)</span></div>
+        <input class="key-input" type="password" id="tavilyKey" placeholder="tvly-..." autocomplete="off"/>
+        <a class="key-link" href="https://app.tavily.com/" target="_blank">→ Get free Tavily key</a>
+      </div>
+    </div>
+    <button class="run-btn" id="runBtn" onclick="run()">▶ &nbsp;Run Pipeline</button>
+  </aside>
+
+  <main class="main" id="mainArea">
+    <div class="empty">
+      <div class="empty-icon">✨</div>
+      <h2>Ready to generate</h2>
+      <p>Add your Groq key, pick a category, hit Run. Each category pulls different live Reddit data and generates unique content.</p>
+    </div>
+  </main>
+</div>
+
+<script>
+let cat = 'roadmap';
+const selClass = {roadmap:'sel',ai:'sel-g',interview:'sel-o',news:'sel-r'};
+const catNames = {roadmap:'Roadmap',ai:'AI Tech Explain',interview:'Interview Question',news:'Tech Industry News'};
+
+function pick(el){
+  document.querySelectorAll('.cat-btn').forEach(b=>b.className='cat-btn');
+  el.classList.add(selClass[el.dataset.cat]);
+  cat=el.dataset.cat;
+}
+
+function setNode(n,state){
+  const nd=document.getElementById('nd'+n);
+  const ns=document.getElementById('ns'+n);
+  if(!nd)return;
+  nd.className='pnode'+(state?' '+state:'');
+  const active=['','fetching Reddit trends...','filtering top 5...','writing slides...'];
+  const idle=['','topic researcher','topic filter','slide writer'];
+  ns.textContent=state==='active'?active[n]:state==='done'?'done ✓':idle[n];
+}
+
+function cp(id,btn){
+  const el=document.getElementById(id);
+  if(!el)return;
+  navigator.clipboard.writeText(el.innerText).then(()=>{
+    btn.textContent='✓ Copied';btn.classList.add('ok');
+    setTimeout(()=>{btn.textContent='Copy';btn.classList.remove('ok')},2000);
+  });
+}
+
+function buildUI(){
+  document.getElementById('mainArea').innerHTML=`
+    <p class="main-title">${catNames[cat]} — Content Generation</p>
+    <p class="main-sub">Agent 1 pulls live Reddit trends for <b>${catNames[cat]}</b> · Agent 2 filters best 5 · Agent 3 writes Canva slides for your chosen topic</p>
+    <div class="pipeline">
+      <div class="pnode" id="nd1"><div class="pi">🌐</div><div class="pl">Agent 1</div><div class="ps" id="ns1">topic researcher</div><div class="pm" style="color:#f59e0b">Groq + Reddit</div></div>
+      <div class="parr">→</div>
+      <div class="pnode" id="nd2"><div class="pi">🔍</div><div class="pl">Agent 2</div><div class="ps" id="ns2">topic filter</div><div class="pm" style="color:#f59e0b">Groq</div></div>
+      <div class="parr">→</div>
+      <div class="pnode" id="nd3"><div class="pi">✏️</div><div class="pl">Agent 3</div><div class="ps" id="ns3">slide writer</div><div class="pm" style="color:#f59e0b">Groq</div></div>
+    </div>
+    <div class="out-block">
+      <div class="out-head"><span class="otag tg">Agent 1 · Reddit + Groq</span><span class="otitle">Live topics for: ${catNames[cat]}</span><button class="cbtn" onclick="cp('o1',this)">Copy</button></div>
+      <div class="out-body" id="o1"><div class="loading"><div class="dots"><span></span><span></span><span></span></div>Fetching live Reddit trends for ${catNames[cat]}...</div></div>
+    </div>
+    <div class="out-block" id="b2" style="display:none">
+      <div class="out-head"><span class="otag tg">Agent 2 · Groq</span><span class="otitle">Top 5 topics selected</span><button class="cbtn" onclick="cp('o2',this)">Copy</button></div>
+      <div class="out-body" id="o2"><div class="loading"><div class="dots"><span></span><span></span><span></span></div>Filtering best 5...</div></div>
+    </div>
+
+    <!-- ✨ Topic Selector + Generate Slide button (shown after Agent 2) -->
+    <div class="slide-panel" id="slidePanel" style="display:none">
+      <div class="slide-panel-title">✨ Generate Slide</div>
+      <div class="slide-panel-sub">Pick which ranked topic you want to turn into a full slide deck + caption + hashtags</div>
+      <div class="topic-btns">
+        <button class="topic-btn picked" id="tb1" onclick="pickTopic(1)">🥇 Topic #1</button>
+        <button class="topic-btn" id="tb2" onclick="pickTopic(2)">🥈 Topic #2</button>
+        <button class="topic-btn" id="tb3" onclick="pickTopic(3)">🥉 Topic #3</button>
+      </div>
+      <button class="gen-slide-btn" id="genSlideBtn" onclick="generateSlide()">🎨 &nbsp;Generate Slide for Topic #<span id="selRankLabel">1</span></button>
+    </div>
+
+    <div class="out-block" id="b3" style="display:none">
+      <div class="out-head"><span class="otag tg">Agent 3 · Groq</span><span class="otitle" id="b3Title">Slide content — ready for Canva</span><button class="cbtn" onclick="cp('o3',this)">Copy</button></div>
+      <div class="out-body" id="o3"><div class="loading"><div class="dots"><span></span><span></span><span></span></div>Writing your slides...</div></div>
+    </div>
+    <div class="caption-box" id="capBox" style="display:none">
+      <div class="cap-head"><strong>📝 Instagram Caption + Hashtags</strong><button class="cbtn" onclick="cp('capText',this)">Copy</button></div>
+      <div class="cap-text" id="capText"></div>
+    </div>`;
+}
+
+// State shared between run() and generateSlide()
+let cachedBestTopics = null;
+let selectedTopicRank = 1;
+
+function pickTopic(n){
+  selectedTopicRank = n;
+  [1,2,3].forEach(i=>{
+    const b=document.getElementById('tb'+i);
+    if(b) b.className='topic-btn'+(i===n?' picked':'');
+  });
+  const lbl=document.getElementById('selRankLabel');
+  if(lbl) lbl.textContent=n;
+}
+
+async function generateSlide(){
+  const groqKey=document.getElementById('groqKey').value.trim();
+  if(!groqKey){alert('Please enter your Groq API key.');return;}
+  if(!cachedBestTopics){alert('Run the pipeline first to get topics.');return;}
+
+  const btn=document.getElementById('genSlideBtn');
+  btn.disabled=true;btn.innerHTML='⏳ &nbsp;Generating slide...';
+
+  // Show Agent 3 block with loading state
+  const b3=document.getElementById('b3');
+  const o3=document.getElementById('o3');
+  const capBox=document.getElementById('capBox');
+  b3.style.display='block';
+  o3.innerHTML='<div class="loading"><div class="dots"><span></span><span></span><span></span></div>Writing slide content for Topic #'+selectedTopicRank+'...</div>';
+  capBox.style.display='none';
+  document.getElementById('b3Title').textContent='Slide content (Topic #'+selectedTopicRank+') — ready for Canva';
+  setNode(3,'active');
+
+  try{
+    const res=await fetch('/api/pipeline',{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({
+        category: cat,
+        groqKey: groqKey,
+        topicRank: selectedTopicRank,
+        bestTopics: cachedBestTopics   // skip re-scraping, use cached Agent 2 output
+      })
+    });
+
+    const raw=await res.text();
+    let data;
+    try{data=JSON.parse(raw);}
+    catch(e){throw new Error('Server error: '+raw.slice(0,200));}
+    if(!res.ok)throw new Error(data.error||'Slide generation failed ('+res.status+')');
+
+    setNode(3,'done');
+    const raw3=data.carousel||'';
+    const capSplit=raw3.split(/INSTAGRAM CAPTION:/i);
+    o3.textContent=capSplit[0].trim();
+
+    if(capSplit[1]){
+      const hSplit=capSplit[1].split(/HASHTAGS:/i);
+      const capText=hSplit[0].trim();
+      const hashText=hSplit[1]?'\n\nHASHTAGS:\n'+hSplit[1].trim():'';
+      capBox.style.display='block';
+      document.getElementById('capText').textContent=capText+hashText;
+    }
+
+  }catch(err){
+    setNode(3,'');
+    o3.innerHTML=`<div class="err-box">❌ ${err.message}</div>`;
+  }
+
+  btn.disabled=false;
+  btn.innerHTML='🎨 &nbsp;Generate Slide for Topic #<span id="selRankLabel">'+selectedTopicRank+'</span>';
+}
+
+async function run(){
+  const groqKey=document.getElementById('groqKey').value.trim();
+  const tavilyKey=document.getElementById('tavilyKey').value.trim();
+  if(!groqKey){alert('Please enter your Groq API key.');return;}
+
+  cachedBestTopics=null;
+  selectedTopicRank=1;
+
+  const btn=document.getElementById('runBtn');
+  btn.disabled=true;btn.textContent='⏳ Running...';
+  buildUI();
+  setNode(1,'active');
+
+  // Progressive UI updates while waiting
+  const t1=setTimeout(()=>{setNode(1,'done');setNode(2,'active');document.getElementById('b2').style.display='block';},5000);
+  const t2=setTimeout(()=>{setNode(2,'done');},11000);
+
+  try{
+    const res=await fetch('/api/pipeline',{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({
+        category: cat,
+        groqKey: groqKey,
+        tavilyKey: tavilyKey
+      })
+    });
+
+    clearTimeout(t1);clearTimeout(t2);
+
+    const raw=await res.text();
+    let data;
+    try{data=JSON.parse(raw);}
+    catch(e){throw new Error('Server error: '+raw.slice(0,200));}
+    if(!res.ok)throw new Error(data.error||'Pipeline failed ('+res.status+')');
+
+    // Show Agent 1 & 2 blocks
+    document.getElementById('b2').style.display='block';
+
+    // Agent 1
+    setNode(1,'done');
+    document.getElementById('o1').textContent=data.trendAnalysis||'No data';
+
+    // Agent 2
+    setNode(2,'done');
+    document.getElementById('o2').textContent=data.bestTopics||'No data';
+
+    // Cache bestTopics for slide generation
+    cachedBestTopics=data.bestTopics||'';
+
+    // Show topic selector panel
+    document.getElementById('slidePanel').style.display='block';
+
+    // Auto-show Agent 3 with the default rank-1 slide that came back
+    setNode(3,'done');
+    const b3=document.getElementById('b3');
+    b3.style.display='block';
+    document.getElementById('b3Title').textContent='Slide content (Topic #1) — ready for Canva';
+    const raw3=data.carousel||'';
+    const capSplit=raw3.split(/INSTAGRAM CAPTION:/i);
+    document.getElementById('o3').textContent=capSplit[0].trim();
+
+    if(capSplit[1]){
+      const hSplit=capSplit[1].split(/HASHTAGS:/i);
+      const capText=hSplit[0].trim();
+      const hashText=hSplit[1]?'\n\nHASHTAGS:\n'+hSplit[1].trim():'';
+      document.getElementById('capBox').style.display='block';
+      document.getElementById('capText').textContent=capText+hashText;
+    }
+
+  }catch(err){
+    clearTimeout(t1);clearTimeout(t2);
+    setNode(1,'');
+    document.getElementById('o1').innerHTML=
+      `<div class="err-box">❌ ${err.message}<br><br>
+• Check your Groq key is correct (starts with gsk_)<br>
+• Make sure api/pipeline.js is uploaded to GitHub and Vercel is redeployed<br>
+• Check Vercel function logs for details</div>`;
+  }
+
+  btn.disabled=false;btn.textContent='↺ Run Again';
+}
+</script>
+</body>
+</html>
